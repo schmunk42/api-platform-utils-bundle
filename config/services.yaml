@@ -1,0 +1,40 @@
+# file generated with AI assistance: Claude Code - 2025-11-22
+
+services:
+    _defaults:
+        autowire: false
+        autoconfigure: false
+        public: false
+
+    # UUID Resolver Service
+    Schmunk42\ApiPlatformUtils\Service\UuidResolver:
+        public: true
+        arguments:
+            $entityManager: '@doctrine.orm.entity_manager'
+
+    # Credential Encryption Service
+    Schmunk42\ApiPlatformUtils\Service\CredentialEncryption:
+        public: true
+        arguments:
+            $encryptionKey: '%schmunk42_api_platform_utils.credential_encryption.key%'
+
+    # Relation Field Schema Decorator (OpenAPI enhancement)
+    Schmunk42\ApiPlatformUtils\OpenApi\RelationFieldSchemaDecorator:
+        decorates: 'api_platform.json_schema.schema_factory'
+        arguments:
+            $decorated: '@.inner'
+            $entityManager: '@doctrine.orm.entity_manager'
+            $resourceMetadataFactory: '@api_platform.metadata.resource.metadata_collection_factory'
+            $logger: '@logger'
+            $apiPrefix: '%schmunk42_api_platform_utils.relation_field_decorator.api_prefix%'
+            $labelPropertyCandidates: '%schmunk42_api_platform_utils.relation_field_decorator.label_property_candidates%'
+        decoration_priority: 10
+        tags: ['monolog.logger']
+
+    # Hydra Operations Subscriber
+    Schmunk42\ApiPlatformUtils\EventSubscriber\AddHydraOperationsSubscriber:
+        arguments:
+            $resourceMetadataFactory: '@api_platform.metadata.resource.metadata_collection_factory'
+            $apiPrefix: '%schmunk42_api_platform_utils.hydra_operations.api_prefix%'
+        tags:
+            - { name: kernel.event_subscriber }
