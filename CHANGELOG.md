@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **CustomOperationHydraFactory** for auto-detecting custom operations in the Hydra documentation
+  - Decorates `ResourceMetadataCollectionFactory` (default priority 100)
+  - URI-based detection: anything other than `/resource` and `/resource/{id}` is a custom operation
+  - Marks each detected operation with `@type=["hydra:Operation","schema:Action"]` instead of API Platform's default `schema:CreateAction` for POSTs
+  - Sets `hydra:title` literally to the operation `name`, derives `expects`/`returns` from input/output metadata
+  - Preserves existing `hydraContext` values; no entity-side annotation needed
+  - Configurable via `custom_operation_hydra.enabled` and `decoration_priority`
+  - Hydra clients can filter custom operations with: `select(@type contains schema:Action and not contains schema:CreateAction)`
+
 ## [1.0.0] - 2025-11-22
 
 ### Added

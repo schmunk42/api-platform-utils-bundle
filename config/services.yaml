@@ -38,3 +38,12 @@ services:
             $apiPrefix: '%schmunk42_api_platform_utils.hydra_operations.api_prefix%'
         tags:
             - { name: kernel.event_subscriber }
+
+    # Custom Operation Hydra Factory (auto-detect /resource/<verb> and
+    # /resource/{id}/<verb> URIs and mark them with @type=schema:Action).
+    # Priority 100 runs after uri_template (500) and operation_name (200).
+    Schmunk42\ApiPlatformUtils\Metadata\CustomOperationHydraFactory:
+        decorates: 'api_platform.metadata.resource.metadata_collection_factory'
+        decoration_priority: 100
+        arguments:
+            $decorated: '@.inner'

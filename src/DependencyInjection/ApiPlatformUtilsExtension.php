@@ -33,6 +33,8 @@ class ApiPlatformUtilsExtension extends Extension
         $container->setParameter('schmunk42_api_platform_utils.hydra_operations.api_prefix', $config['hydra_operations']['api_prefix']);
         $container->setParameter('schmunk42_api_platform_utils.hydra_operations.event_priority', $config['hydra_operations']['event_priority']);
 
+        $container->setParameter('schmunk42_api_platform_utils.custom_operation_hydra.enabled', $config['custom_operation_hydra']['enabled']);
+
         // Load service definitions
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
         $loader->load('services.yaml');

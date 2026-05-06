@@ -78,6 +78,17 @@ class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+
+                // Custom Operation Hydra Factory
+                ->arrayNode('custom_operation_hydra')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultTrue()
+                            ->info('Auto-detect custom operations (URIs other than /resource and /resource/{id}) and mark them with @type=schema:Action in the Hydra documentation')
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;
