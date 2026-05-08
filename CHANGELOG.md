@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **PartialUuidItemProvider** decorator for project-wide partial-UUID item lookups
+  - Decorates `api_platform.doctrine.orm.state.item_provider`
+  - Full UUIDs (Uuid object or RFC 4122 string) take the fast indexed path through the inner provider — no overhead beyond a single regex match
+  - Non-UUID `{id}` URI variables are resolved via `UuidResolver::findByPartialUuid()` against the operation's own resource class (`$operation->getClass()`)
+  - Multi-match collisions surface via the existing `UuidResolver` exception path
+  - Successful partial resolutions are logged at `debug` level on the `api_platform` channel — useful for spotting unintended partial-UUID traffic in production
+  - Off by default (`partial_uuid_item_provider.enabled: false`) to avoid surprising existing consumers; opt in per project
+  - Intended as a convenience layer for CLI workflows, ad-hoc curl, and admin debugging — service-to-service traffic should continue to use full UUIDs
 - **CustomOperationHydraFactory** for auto-detecting custom operations in the Hydra documentation
   - Decorates `ResourceMetadataCollectionFactory` (default priority 100)
   - URI-based detection: anything other than `/resource` and `/resource/{id}` is a custom operation
