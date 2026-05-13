@@ -34,10 +34,23 @@ class ApiPlatformUtilsExtension extends Extension
         $container->setParameter('schmunk42_api_platform_utils.hydra_operations.event_priority', $config['hydra_operations']['event_priority']);
 
         $container->setParameter('schmunk42_api_platform_utils.custom_operation_hydra.enabled', $config['custom_operation_hydra']['enabled']);
+        $container->setParameter('schmunk42_api_platform_utils.custom_operation_hydra.api_prefix', $config['custom_operation_hydra']['api_prefix']);
+
+        $container->setParameter('schmunk42_api_platform_utils.hydra_documentation.enabled', $config['hydra_documentation']['enabled']);
+        $container->setParameter('schmunk42_api_platform_utils.hydra_documentation.api_prefix', $config['hydra_documentation']['api_prefix']);
+
+        $container->setParameter('schmunk42_api_platform_utils.partial_uuid_item_provider.enabled', $config['partial_uuid_item_provider']['enabled']);
 
         // Load service definitions
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
         $loader->load('services.yaml');
+
+        // Conditionally load the partial UUID item provider decorator.
+        // Loaded only when explicitly enabled, so the default install does
+        // not change item-lookup semantics for existing bundle consumers.
+        if ($config['partial_uuid_item_provider']['enabled']) {
+            $loader->load('services_partial_uuid.yaml');
+        }
     }
 
     public function getAlias(): string

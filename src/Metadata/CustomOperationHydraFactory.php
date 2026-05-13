@@ -29,9 +29,13 @@ use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
  * Hydra context written for every detected custom operation:
  *   - @type:        ["hydra:Operation", "schema:Action"]
  *   - hydra:title:  literal value of operation `name`
- *   - expects:      input class short name, or owl:Nothing if input=false
- *   - returns:      output class short name, or owl:Nothing if no output
+ *   - hydra:expects: input class short name, or owl:Nothing if input=false
+ *   - hydra:returns: output class short name, or owl:Nothing if no output
  *   - hydra:description: from operation `description` if set
+ *   - @id:           full URL (api_prefix + route_prefix + uri_template),
+ *                    only when uri_template carries NO placeholder
+ *   - hydra:uriTemplate: full URL with placeholders preserved,
+ *                    only when uri_template DOES carry a placeholder
  *
  * Existing values in `hydraContext` of the operation are preserved.
  */
@@ -39,6 +43,7 @@ final class CustomOperationHydraFactory implements ResourceMetadataCollectionFac
 {
     public function __construct(
         private readonly ResourceMetadataCollectionFactoryInterface $decorated,
+        private readonly string $apiPrefix = '/api',
     ) {
     }
 
@@ -52,10 +57,12 @@ final class CustomOperationHydraFactory implements ResourceMetadataCollectionFac
                 continue;
             }
 
+            $routePrefix = $resourceMetadata->getRoutePrefix() ?? '';
+
             $rebuilt = [];
             foreach ($operations as $name => $operation) {
                 $rebuilt[$name] = $this->isCustomOperation($operation)
-                    ? $this->markAsCustom($operation)
+                    ? $this->markAsCustom($operation, $routePrefix)
                     : $operation;
             }
 
@@ -92,7 +99,7 @@ final class CustomOperationHydraFactory implements ResourceMetadataCollectionFac
         return true;
     }
 
-    private function markAsCustom(HttpOperation $operation): HttpOperation
+    private function markAsCustom(HttpOperation $operation, string $routePrefix): HttpOperation
     {
         $existing = $operation->getHydraContext() ?? [];
         $title = $operation->getName() ?? $this->fallbackTitleFromUri($operation);
@@ -104,15 +111,35 @@ final class CustomOperationHydraFactory implements ResourceMetadataCollectionFac
         $context = $existing + [
             '@type' => ['hydra:Operation', 'schema:Action'],
             'hydra:title' => $title,
-            'expects' => null === $inputClass ? 'owl:Nothing' : $this->classShortName($inputClass),
-            'returns' => null === $outputClass ? 'owl:Nothing' : $this->classShortName($outputClass),
+            'hydra:expects' => null === $inputClass ? 'owl:Nothing' : $this->classShortName($inputClass),
+            'hydra:returns' => null === $outputClass ? 'owl:Nothing' : $this->classShortName($outputClass),
         ];
 
         if (null !== $operation->getDescription() && !isset($context['hydra:description'])) {
             $context['hydra:description'] = $operation->getDescription();
         }
 
+        $context += $this->urlCarrier($operation, $routePrefix);
+
         return $operation->withHydraContext($context);
+    }
+
+    /**
+     * Build either `@id` (no placeholder in URI) or `hydra:uriTemplate`
+     * (placeholder present) for a custom operation. Never both, never neither.
+     */
+    private function urlCarrier(HttpOperation $operation, string $routePrefix): array
+    {
+        $template = $operation->getUriTemplate() ?? '';
+        if ('' === $template) {
+            return [];
+        }
+
+        $full = rtrim($this->apiPrefix, '/').$routePrefix.$template;
+
+        return str_contains($full, '{')
+            ? ['hydra:uriTemplate' => $full]
+            : ['@id' => $full];
     }
 
     private function fallbackTitleFromUri(HttpOperation $operation): string

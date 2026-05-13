@@ -130,15 +130,15 @@ final class AddHydraOperationsSubscriber implements EventSubscriberInterface
                     $operationData = [
                         '@id' => $operationUrl,
                         '@type' => 'hydra:Operation',
-                        'method' => $op->getMethod() ?? 'GET',
+                        'hydra:method' => $op->getMethod() ?? 'GET',
                     ];
 
                     // Add title/description
                     $description = $op->getDescription();
                     if ($description) {
-                        $operationData['title'] = $description;
+                        $operationData['hydra:title'] = $description;
                     } else {
-                        $operationData['title'] = $this->generateTitle($op);
+                        $operationData['hydra:title'] = $this->generateTitle($op);
                     }
 
                     // Add expects/returns
@@ -146,13 +146,13 @@ final class AddHydraOperationsSubscriber implements EventSubscriberInterface
                     $method = $op->getMethod();
 
                     if (in_array($method, ['PUT', 'PATCH', 'POST'])) {
-                        $operationData['expects'] = $shortName;
+                        $operationData['hydra:expects'] = $shortName;
                     }
 
                     if ($method === 'DELETE') {
-                        $operationData['returns'] = 'owl:Nothing';
+                        $operationData['hydra:returns'] = 'owl:Nothing';
                     } else {
-                        $operationData['returns'] = $shortName;
+                        $operationData['hydra:returns'] = $shortName;
                     }
 
                     $operations[] = $operationData;
