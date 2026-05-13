@@ -119,6 +119,17 @@ class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+
+                // Partial UUID Item Provider
+                ->arrayNode('partial_uuid_item_provider')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultFalse()
+                            ->info('Decorate the Doctrine ORM item provider so that {id} URI variables are resolved as full OR partial UUIDs project-wide. Convenience layer — full UUIDs still take the fast indexed path. Off by default to avoid surprising existing consumers.')
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;

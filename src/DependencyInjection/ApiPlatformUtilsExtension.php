@@ -41,6 +41,8 @@ class ApiPlatformUtilsExtension extends Extension
 
         $container->setParameter('schmunk42_api_platform_utils.partial_uuid_item_provider.enabled', $config['partial_uuid_item_provider']['enabled']);
 
+        $container->setParameter('schmunk42_api_platform_utils.partial_uuid_item_provider.enabled', $config['partial_uuid_item_provider']['enabled']);
+
         // Load service definitions
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
         $loader->load('services.yaml');

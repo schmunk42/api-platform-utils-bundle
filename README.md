@@ -5,6 +5,7 @@ Generic utilities for API Platform projects: UUID resolver, credential encryptio
 ## Features
 
 - **UUID Resolver**: Find entities by full or partial UUID (supports both binary and string UUID storage)
+- **Partial UUID Item Provider**: Decorator that lets every `GET /resource/{id}` (and any custom item operation) accept a partial UUID — full UUIDs keep the fast indexed path
 - **Credential Encryption**: Secure encryption/decryption using libsodium (XChaCha20-Poly1305)
 - **Relation Field Schema Decorator**: Automatically adds x-* metadata to OpenAPI schemas for admin UI autocomplete
 - **Hydra Operations Subscriber**: Enriches JSON-LD responses with operation metadata for better API discoverability
@@ -66,6 +67,10 @@ schmunk42_api_platform_utils:
     hydra_operations:
         api_prefix: '/api'
         event_priority: -10
+
+    # Partial UUID Item Provider (optional, off by default)
+    partial_uuid_item_provider:
+        enabled: true
 ```
 
 ### 4. Set Environment Variable
@@ -124,7 +129,53 @@ class MyCommand extends Command
 - Throws exception if partial UUID is ambiguous
 - Automatically detects storage type from Doctrine metadata
 
-### 2. Credential Encryption
+### 2. Partial UUID Item Provider
+
+Apply partial-UUID lookup project-wide without touching any operation
+declaration. Once enabled, every item endpoint — standard `GET /resource/{id}`,
+custom operations, sub-resources — accepts a partial UUID alongside the full
+form.
+
+Enable in `config/packages/schmunk42_api_platform_utils.yaml`:
+
+```yaml
+schmunk42_api_platform_utils:
+    partial_uuid_item_provider:
+        enabled: true
+```
+
+Resulting behavior:
+
+```bash
+# Full UUID — fast indexed path through the standard Doctrine provider
+curl https://api.example.com/projects/550e8400-e29b-41d4-a716-446655440000
+
+# Partial UUID — resolved via UuidResolver against the operation's resource class
+curl https://api.example.com/projects/550e8400
+```
+
+**Routing logic** (preserves the fast path for production traffic):
+
+| `{id}` value                                 | Path taken                                    |
+| -------------------------------------------- | --------------------------------------------- |
+| `Uuid` object or full RFC 4122 string        | Inner Doctrine provider (indexed `find()`)    |
+| Non-UUID string of any length                | `UuidResolver::findByPartialUuid()`           |
+| Missing                                      | Inner Doctrine provider                       |
+
+**Logging**: successful partial resolutions are logged at `debug` level on
+the `api_platform` channel — keep an eye on it to catch service-to-service
+callers that should be sending full UUIDs.
+
+**Caveats**:
+
+- Partial-UUID matching is `LIKE 'prefix%'` on the indexed `id` column.
+  Sub-millisecond at 10K rows; benchmark before relying on it past ~1M rows.
+- Multi-match collisions raise the existing `UuidResolver` exception, which
+  API Platform serializes as a 5xx response. Use full UUIDs in
+  service-to-service traffic to avoid this.
+- Off by default to avoid surprising existing consumers — opt in per project.
+
+### 3. Credential Encryption
 
 Securely encrypt/decrypt API credentials:
 
@@ -176,7 +227,7 @@ echo "CREDENTIALS_ENCRYPTION_KEY=" . $key;
 - Memory cleanup with sodium_memzero
 - Base64 encoding for storage
 
-### 3. Relation Field Schema Decorator
+### 4. Relation Field Schema Decorator
 
 Automatically enhances OpenAPI schemas for Doctrine relations. **No code required!**
 
@@ -225,7 +276,7 @@ class Project
 **Use in Admin UI**:
 The x-* extensions are used by admin UIs (like API Platform Admin) to render autocomplete dropdowns for relation fields.
 
-### 4. Hydra Operations Subscriber
+### 5. Hydra Operations Subscriber
 
 Automatically adds operation metadata to JSON-LD item responses. **No code required!**
 
